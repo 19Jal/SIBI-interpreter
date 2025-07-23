@@ -1,0 +1,10 @@
+# Virtual Environments
+myenv310/
+
+# Python cache files
+__pycache__/
+
+# Dataset and Processed Data
+data/
+dataset/
+processed_sibi_data/
