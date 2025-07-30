@@ -7,11 +7,35 @@ import torch.nn.functional as F
 import numpy as np
 import joblib
 import os
+import time
+import gc
 from collections import deque, Counter
 from ..models.mlp import SIBIBasicMLP
 from ..utils.landmarks import HandLandmarkExtractor
 import mediapipe as mp
 
+class FPSCounter:
+    """Simple FPS counter with moving average"""
+    
+    def __init__(self, history_size=30):
+        self.history_size = history_size
+        self.frame_times = deque(maxlen=history_size)
+        self.last_time = time.time()
+        
+    def update(self):
+        """Update FPS calculation"""
+        current_time = time.time()
+        frame_time = current_time - self.last_time
+        self.frame_times.append(frame_time)
+        self.last_time = current_time
+        
+    def get_fps(self):
+        """Get current FPS (moving average)"""
+        if len(self.frame_times) < 2:
+            return 0.0
+        
+        avg_frame_time = sum(self.frame_times) / len(self.frame_times)
+        return 1.0 / avg_frame_time if avg_frame_time > 0 else 0.0
 class SIBIRealTimeRecognizer:
     """Real-time SIBI recognition - PyTorch 2.6 Compatible"""
     
@@ -25,12 +49,24 @@ class SIBIRealTimeRecognizer:
         # Initialize landmark extractor
         self.landmark_extractor = HandLandmarkExtractor(static_mode=False)
         self.mp_drawing = mp.solutions.drawing_utils
+
+        # Create MediaPipe Hands instance ONCE
+        self.hands_display = mp.solutions.hands.Hands(
+            static_image_mode=False,
+            max_num_hands=1,
+            min_detection_confidence=0.8,
+            min_tracking_confidence=0.6
+        )
         
         # SIBI letters
         self.letters = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
         
         # Prediction smoothing
-        self.prediction_history = deque(maxlen=10)
+        self.prediction_history = deque(maxlen=5)
+        
+        # FPS counter
+        self.fps_counter = FPSCounter()
+        self.frame_count = 0
         
         print(f"🔧 Recognition system ready! Using device: {self.device}")
     
@@ -108,6 +144,11 @@ class SIBIRealTimeRecognizer:
     def run(self):
         """Run real-time recognition"""
         cap = cv2.VideoCapture(0)
+
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)        # Reduce buffer to 1 frame
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)     # Lower resolution  
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        cap.set(cv2.CAP_PROP_FPS, 30)
         
         if not cap.isOpened():
             print("❌ Error: Could not open camera")
@@ -118,26 +159,30 @@ class SIBIRealTimeRecognizer:
         print("❌ Press 'q' to quit")
         print("-" * 60)
         
+        self.frame_count = 0
+
         try:
             while True:
                 ret, frame = cap.read()
                 if not ret:
                     break
-                
+
+                self.frame_count += 1
+                if self.frame_count % 100 == 0:
+                    gc.collect()
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                self.fps_counter.update()
+
                 frame = cv2.flip(frame, 1)
+                
                 
                 # Extract landmarks
                 landmarks = self.landmark_extractor.extract_from_frame(frame)
                 
                 # Draw hand landmarks
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                hands_display = mp.solutions.hands.Hands(
-                    static_image_mode=False,
-                    max_num_hands=1,
-                    min_detection_confidence=0.8,
-                    min_tracking_confidence=0.6
-                )
-                results = hands_display.process(rgb_frame)
+                results = self.hands_display.process(rgb_frame)
                 
                 if results.multi_hand_landmarks:
                     for hand_landmarks in results.multi_hand_landmarks:
@@ -168,6 +213,19 @@ class SIBIRealTimeRecognizer:
                 # Instructions
                 cv2.putText(frame, "Press 'q' to quit", (10, frame.shape[0] - 20), 
                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                
+                current_fps = self.fps_counter.get_fps()
+                height, width = frame.shape[:2]
+
+                 # FPS display (top-right corner)
+                fps_text = f"FPS: {current_fps:.1f}"
+                cv2.putText(frame, fps_text, (width - 120, 30), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+                
+                # Frame counter (top-right, below FPS)
+                frame_text = f"Frame: {self.frame_count}"
+                cv2.putText(frame, frame_text, (width - 140, 60), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
                 
                 cv2.imshow('SIBI v2 Recognition', frame)
                 
