@@ -155,7 +155,7 @@ def main():
             
         elif choice == 'q' or choice == 'quit':
             print("\n👋 Thank you for using SIBI Recognition System v2!")
-            print("🇮🇩 Goodbye!")
+            print("Goodbye!")
             break
             
         else:

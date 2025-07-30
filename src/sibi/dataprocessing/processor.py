@@ -23,14 +23,14 @@ class SIBIDatasetProcessor:
         
     def process_dataset(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Process the entire dataset"""
-        print("🔄 Processing SIBI image dataset...")
+        print("Processing SIBI image dataset...")
         
         # Process training data
-        print("📚 Processing training split...")
+        print("Processing training split...")
         train_landmarks, train_labels = self._process_split("train")
         
         # Process validation data  
-        print("📊 Processing validation split...")
+        print("Processing validation split...")
         val_landmarks, val_labels = self._process_split("val")
         
         if len(train_landmarks) == 0 or len(val_landmarks) == 0:
@@ -39,9 +39,9 @@ class SIBIDatasetProcessor:
         # Save processed data
         self._save_processed_data(train_landmarks, train_labels, val_landmarks, val_labels)
         
-        print(f"✅ Dataset processing completed!")
-        print(f"   📚 Training samples: {len(train_landmarks)}")
-        print(f"   📊 Validation samples: {len(val_landmarks)}")
+        print(f"Dataset processing completed!")
+        print(f"    Training samples: {len(train_landmarks)}")
+        print(f"    Validation samples: {len(val_landmarks)}")
         
         return train_landmarks, train_labels, val_landmarks, val_labels
     
@@ -112,4 +112,4 @@ class SIBIDatasetProcessor:
         with open(os.path.join(self.output_dir, "metadata.json"), 'w') as f:
             json.dump(metadata, f, indent=2)
         
-        print(f"💾 Processed data saved to {self.output_dir}/")
+        print(f"Processed data saved to {self.output_dir}/")

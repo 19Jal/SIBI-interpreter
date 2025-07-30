@@ -1,3 +1,6 @@
+"""Visualization utilities for Sibi project
+This module provides functions to visualize training history and dataset statistics."""
+
 import matplotlib.pyplot as plt
 import json
 import os
