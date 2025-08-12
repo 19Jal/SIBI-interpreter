@@ -150,7 +150,7 @@ def main():
         elif choice == '3':
             option_3_run_recognition()
             
-        elif choice == '4':
+        elif choice == '4':   
             option_4_show_stats()
             
         elif choice == 'q' or choice == 'quit':

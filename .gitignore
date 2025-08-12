@@ -1,5 +1,5 @@
 # Virtual Environments
-myenv310/
+env310/
 
 # Python cache files
 __pycache__/
@@ -8,3 +8,6 @@ __pycache__/
 data/
 dataset/
 processed_sibi_data/
+
+# Training Histories
+training_history.png

@@ -238,3 +238,8 @@ class SIBIRealTimeRecognizer:
             cap.release()
             cv2.destroyAllWindows()
             print("📹 Camera released")
+
+    def __del__(self):
+        # Release MediaPipe resources
+        if hasattr(self, 'hands_display'):
+            self.hands_display.close()
