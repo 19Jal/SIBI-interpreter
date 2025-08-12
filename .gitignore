@@ -8,6 +8,3 @@ __pycache__/
 data/
 dataset/
 processed_sibi_data/
-
-# Training Histories
-training_history.png
